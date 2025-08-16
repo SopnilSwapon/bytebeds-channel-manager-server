@@ -1,6 +1,7 @@
 import express from "express";
 import bcrypt from "bcrypt";
 import { connectToDB } from "../lib/db.js";
+import jwt from "jsonwebtoken";
 
 interface IAdvanceUserFormValues {
   name: string;
@@ -11,6 +12,11 @@ interface IAdvanceUserFormValues {
   is_auto_property_assign: boolean | string;
   password: string;
   permissions?: JSON;
+}
+interface IUserLogin {
+  id: number;
+  username: string;
+  password: string;
 }
 const authRouter = express.Router();
 
@@ -82,23 +88,35 @@ authRouter.post(
       const sql = "SELECT * FROM `advance-users` WHERE username = ?";
       const [userRows] = await db.query(sql, [username]);
 
-      const users = userRows as IAdvanceUserFormValues[];
+      const users = userRows as IUserLogin[];
       if (users.length === 0) {
         return res.status(404).json({
           code: "UQ_USERNAME",
-          reason: "Username not exists",
+          reason: "username or password wrong",
           message: "User not existed",
         });
       } else {
-        const isMatched = await bcrypt.compare(password, users[0]?.password!);
-        const hashPassword = await bcrypt.hash(password, 10);
-        await db.query(
-          "INSERT INTO `advance-users` (name, email, mobile_no, username, role_id, is_auto_property_assign, password) VALUES (?, ?, ?, ?, ?, ?, ?)",
-          [username, hashPassword]
+        const isPasswordMatched = await bcrypt.compare(
+          password,
+          users[0]?.password!
+        );
+
+        if (!isPasswordMatched || username !== users[0]?.username) {
+          return res.status(404).json({
+            code: "UQ_USERNAME",
+            reason: "username or password wrong",
+            message: "Invalid username or password",
+          });
+        }
+        const token = jwt.sign(
+          { id: users[0].id },
+          process.env.JWT_SECRET_KEY!,
+          { expiresIn: "1h" }
         );
         return res.status(201).json({
-          code: "USER_CREATED",
-          message: "User created successfully",
+          code: "user logged",
+          message: "User login successfully",
+          data: { token, type: "advance" },
         });
       }
     } catch (error) {
