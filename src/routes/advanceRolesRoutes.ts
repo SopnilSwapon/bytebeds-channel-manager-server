@@ -3,20 +3,27 @@ import { connectToDB } from "../lib/db.js";
 
 const advanceRolesRoutes = express.Router();
 
-// const permissionRoutes = express.Router();
-
-advanceRolesRoutes.get("/advance/permissions", async (req, res) => {
+// Get Advance roles permissions
+advanceRolesRoutes.get("/advance/roles/permissions", async (req, res) => {
   try {
     const db = await connectToDB();
 
-    // JOIN modules + permissions
-    const sql = `
-      SELECT m.id as module_id, m.module_name, 
-             p.id as permission_id, p.code, p.name as permission_name
-      FROM modules m
-      LEFT JOIN permissions p ON m.id = p.module_id
-      ORDER BY m.id, p.id
-    `;
+    // Join advanceModules table & advancePermissions table;
+
+    const sql = `SELECT am.id as module_id, am.module_name
+                        ap.id as permission_id, p.code, p.name as permission_name
+                 FROM advanceModules am
+                 LEFT JOIN advancePermissions ap ON am.id = ap.module_id
+                 ORDER BY am.id, ap.id`;
+
+    // // JOIN modules + permissions
+    // const sql = `
+    //   SELECT m.id as module_id, m.module_name,
+    //          p.id as permission_id, p.code, p.name as permission_name
+    //   FROM advanceModules m
+    //   LEFT JOIN advancePermissions p ON m.id = p.module_id
+    //   ORDER BY m.id, p.id
+    // `;
 
     const [rows] = await db.query(sql);
 
@@ -45,10 +52,9 @@ advanceRolesRoutes.get("/advance/permissions", async (req, res) => {
 
     res.json({
       code: "Succeed",
-      message: "Modules with permissions fetched successfully!",
+      message: "Advance Permissions Fetched Successfully!",
       data: {
-        modules: result,
-        count: result.length,
+        permissions_by_module: result,
       },
     });
   } catch (error) {
