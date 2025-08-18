@@ -181,4 +181,28 @@ advanceRolesRoutes.get(
   }
 );
 
+// Get roles dropdown
+advanceRolesRoutes.get(
+  "/advance/roles/dropdown",
+  async (req: Request, res: Response) => {
+    const db = await connectToDB();
+    try {
+      const sql = "SELECT r.id, r.name FROM advanceRoles AS r";
+      const [rolesDropdownRows] = await db.query(sql);
+      res.send({
+        code: "Success",
+        message: "Roles Fetched Successfully!",
+        data: rolesDropdownRows,
+      });
+    } catch (error) {
+      console.log(error, "check roles dropdown error");
+      return res.status(500).json({
+        code: "Error",
+        message: "Internal server error",
+        data: null,
+      });
+    }
+  }
+);
+
 export default advanceRolesRoutes;
