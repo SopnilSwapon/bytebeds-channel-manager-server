@@ -37,6 +37,15 @@ export interface ICreateRoleParams {
 interface IRoleNames extends RowDataPacket {
   name: string;
 }
+// get all roles type
+interface IAdvanceRolesResponse extends RowDataPacket {
+  id: number;
+  role: string;
+  name: string;
+  description?: string;
+  status: boolean;
+  created_by?: string;
+}
 
 const advanceRolesRoutes = express.Router();
 
@@ -139,6 +148,34 @@ advanceRolesRoutes.post(
       return res.status(500).json({
         code: "SERVER_ERROR",
         message: "Internal server error",
+      });
+    }
+  }
+);
+
+// Get all roles
+advanceRolesRoutes.get(
+  "/advance/roles",
+  async (req: Request<{}, {}>, res: Response) => {
+    const db = await connectToDB();
+    try {
+      const sql =
+        "SELECT r.id, r.name, r.description, r.status, r.created_by FROM advanceRoles AS r";
+      const [rolesRows] = await db.query<IAdvanceRolesResponse[]>(sql);
+      res.json({
+        code: "Succeed",
+        message: "Advance Roles Fetched Successfully!",
+        data: {
+          roles: rolesRows,
+          count: rolesRows.length,
+        },
+      });
+    } catch (error) {
+      console.log(error, "check error");
+      return res.status(500).json({
+        code: "Error",
+        message: "Server error",
+        data: null,
       });
     }
   }
