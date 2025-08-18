@@ -25,6 +25,19 @@ interface IAdvancePermissionRow extends RowDataPacket {
   permission_name: string | null;
 }
 
+// create advance role type
+export interface ICreateRoleParams {
+  name: string;
+  description: string;
+  permissions: {
+    [key: string]: boolean | string | Date;
+  };
+}
+
+interface IRoleNames extends RowDataPacket {
+  name: string;
+}
+
 const advanceRolesRoutes = express.Router();
 
 // Get Advance roles permissions
@@ -85,6 +98,47 @@ advanceRolesRoutes.get(
         code: "Error",
         message: "Server error",
         data: null,
+      });
+    }
+  }
+);
+
+// Create a advance role
+advanceRolesRoutes.post(
+  "/advance/roles",
+  async (req: Request<{}, {}, ICreateRoleParams>, res: Response) => {
+    const { name, description, permissions } = req.body;
+    const status = true;
+
+    try {
+      const db = await connectToDB();
+
+      const sql = `SELECT ar.name FROM advanceRoles as ar WHERE ar.name = ?`;
+      const [rolesRows] = await db.query<IRoleNames[]>(sql, [name]);
+
+      // check this role already have or not
+      if (rolesRows.length > 0 && rolesRows[0]?.name) {
+        return res.status(409).json({
+          code: "UQ_ROLE_NAME",
+          reason: "Role already exists",
+          message: "Role name already in use. Please try another one.",
+        });
+      }
+
+      await db.query(
+        "INSERT INTO advanceRoles (name, description, permissions, status) VALUES (?, ?, ?, ?)",
+        [name, description, JSON.stringify(permissions), status]
+      );
+
+      return res.status(201).json({
+        code: "ROLES_CREATED",
+        message: "Role created successfully",
+      });
+    } catch (error) {
+      console.error("Role Create Error:", error);
+      return res.status(500).json({
+        code: "SERVER_ERROR",
+        message: "Internal server error",
       });
     }
   }
