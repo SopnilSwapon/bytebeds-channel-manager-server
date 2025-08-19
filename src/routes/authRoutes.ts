@@ -29,8 +29,12 @@ interface IAdvanceUserRow extends RowDataPacket {
 // Minimal row shape we read for login
 interface IUserLoginRow extends RowDataPacket {
   id: number;
+  name: string;
+  email: string;
+  mobile_no: number;
   username: string;
   password: string;
+  user_type: string;
 }
 
 // Role's permissions type
@@ -146,7 +150,7 @@ authRouter.post(
 
       // Select only what's needed for login
       const [rows] = await db.query<IUserLoginRow[]>(
-        "SELECT id, username, password FROM `advance-users` WHERE username = ? LIMIT 1",
+        "SELECT id, password, name, email, user_type, username, mobile_no FROM `advance-users` WHERE username = ? LIMIT 1",
         [username]
       );
 
@@ -186,12 +190,20 @@ authRouter.post(
         });
       }
 
-      const token = jwt.sign({ id: user.id }, secret, { expiresIn: "1h" });
+      const token = jwt.sign({ id: user.id }, secret, { expiresIn: "10s" });
 
       return res.status(200).json({
         code: "USER_LOGGED_IN",
         message: "User login successfully",
-        data: { token, type: "advance" },
+        data: {
+          id: user.id,
+          name: user.username,
+          user_name: user.username,
+          user_type: user.user_type,
+          access_token: token,
+          email: user.email,
+          mobile_no: user.mobile_no,
+        },
       });
     } catch (error) {
       console.error("LOGIN_ERROR:", error);
@@ -201,6 +213,12 @@ authRouter.post(
       });
     }
   }
+);
+
+// get permissions of current login users
+authRouter.get(
+  "advance/user/permissions",
+  async (req: Request, res: Response) => {}
 );
 
 export default authRouter;
