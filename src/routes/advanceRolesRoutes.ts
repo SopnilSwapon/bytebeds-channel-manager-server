@@ -38,7 +38,7 @@ interface IRoleNames extends RowDataPacket {
   name: string;
 }
 // get all roles type
-interface IAdvanceRolesResponse extends RowDataPacket {
+export interface IAdvanceRolesResponse extends RowDataPacket {
   id: number;
   role: string;
   name: string;

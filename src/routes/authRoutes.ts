@@ -3,6 +3,11 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { connectToDB } from "../lib/db.js";
 import type { RowDataPacket, ResultSetHeader } from "mysql2";
+import {
+  authMiddleware,
+  type IAuthenticatedRequest,
+} from "../middlewares/authMiddleware.js";
+import type { IAdvanceRolesResponse } from "./advanceRolesRoutes.js";
 
 interface IAdvanceUserFormValues {
   name: string;
@@ -40,6 +45,11 @@ interface IUserLoginRow extends RowDataPacket {
 // Role's permissions type
 interface IAdvanceRolePermissions extends RowDataPacket {
   permissions?: Record<string, any>;
+}
+// current permissions type
+interface IAllPermissions extends RowDataPacket {
+  id: number;
+  code: string;
 }
 
 // ---------------------- Router ----------------------
@@ -190,7 +200,18 @@ authRouter.post(
         });
       }
 
-      const token = jwt.sign({ id: user.id }, secret, { expiresIn: "10s" });
+      const token = jwt.sign(
+        {
+          id: user.id,
+          username: user.username,
+          name: user.name,
+          email: user.email,
+          mobile_no: user.mobile_no,
+          user_type: user.user_type,
+        },
+        secret,
+        { expiresIn: "10m" }
+      );
 
       return res.status(200).json({
         code: "USER_LOGGED_IN",
@@ -215,10 +236,74 @@ authRouter.post(
   }
 );
 
-// get permissions of current login users
+// get permissions of current login user
 authRouter.get(
-  "advance/user/permissions",
-  async (req: Request, res: Response) => {}
+  "/advance/users/permissions",
+  authMiddleware,
+  async (req: IAuthenticatedRequest, res: Response) => {
+    try {
+      const db = await connectToDB();
+      const userId = req.user?.id;
+
+      if (!userId) {
+        return res.status(401).json({
+          code: "NO_USER",
+          message: "User not found in token",
+        });
+      }
+
+      const [rows] = await db.query<IAdvanceRolePermissions[]>(
+        "SELECT permissions FROM `advance-users` WHERE id = ? LIMIT 1",
+        [userId]
+      );
+
+      if (rows.length === 0) {
+        return res.status(404).json({
+          code: "USER_NOT_FOUND",
+          message: "User not found",
+        });
+      }
+
+      // const permissions = rows[0]?.permissions
+      //   ? JSON.parse(rows[0].permissions)
+      //   : null;
+      //  const rawPermissions = rows[0]?.permissions;
+      const rawPermissions = rows[0]?.permissions;
+      let permissions: Record<string, any> | null = null;
+      if (typeof rawPermissions === "string") {
+        try {
+          permissions = JSON.parse(rawPermissions);
+        } catch (error) {
+          console.error("Invalid JSON in permissions field");
+          permissions = null;
+        }
+      } else if (
+        typeof rawPermissions === "object" &&
+        rawPermissions !== null
+      ) {
+        permissions = rawPermissions;
+      }
+      const [rolesPermissionsRows] = await db.query<IAllPermissions[]>(
+        "SELECT id, code FROM advancePermissions"
+      );
+
+      const userPermissions = rolesPermissionsRows
+        .filter((p) => permissions?.[p.id] === true)
+        .map((per) => per.code);
+
+      return res.status(200).json({
+        code: "USER_PERMISSIONS",
+        message: "User permissions fetched successfully",
+        data: userPermissions,
+      });
+    } catch (error) {
+      console.error("GET_PERMISSIONS_ERROR:", error);
+      return res.status(500).json({
+        code: "SERVER_ERROR",
+        message: "Internal server error",
+      });
+    }
+  }
 );
 
 export default authRouter;

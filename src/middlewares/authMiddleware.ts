@@ -1,13 +1,19 @@
 import type { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
+import jwt, { type JwtPayload } from "jsonwebtoken";
 
-interface IJwtPayLoad {
+export interface IAuthUser {
   id: number;
+  username: string; // comes from DB "username"
+  name: string; // comes from DB "name"
+  email: string;
+  mobile_no: string;
+  user_type: string; // could be 'admin' | 'staff' | 'guest' (better to union type)
 }
 
 export interface IAuthenticatedRequest extends Request {
-  user: IJwtPayLoad;
+  user?: IAuthUser;
 }
+interface ITokenPayload extends JwtPayload, IAuthUser {}
 
 export const authMiddleware = (
   req: IAuthenticatedRequest,
@@ -31,7 +37,7 @@ export const authMiddleware = (
     if (!secretKey) {
       throw new Error("JWT secret key missing");
     }
-    const decoded = jwt.verify(token, secretKey) as IJwtPayLoad;
+    const decoded = jwt.verify(token, secretKey) as ITokenPayload;
     req.user = decoded;
     next();
   } catch (error) {
