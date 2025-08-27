@@ -181,6 +181,15 @@ advanceRolesRoutes.get(
   }
 );
 
+// Get a role
+advanceRolesRoutes.get(
+  "/advance/role/:id",
+  async (req: Request, res: Response) => {
+    const db = await connectToDB();
+    const sql = "SELECT * FROM ";
+  }
+);
+
 // Get roles dropdown
 advanceRolesRoutes.get(
   "/advance/roles/dropdown",

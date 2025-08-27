@@ -16,41 +16,39 @@ interface IAdvanceUser {
 
 const advanceUserRoutes = express.Router();
 
-advanceUserRoutes.get(
-  "/advance/users",
-  async (req: express.Request<{}, {}, IAdvanceUser>, res) => {
-    try {
-      const sql = "SELECT * FROM `advance-users`";
-      const db = await connectToDB();
+// get all users
+advanceUserRoutes.get("/advance/users", async (req, res) => {
+  try {
+    const sql = "SELECT * FROM `advance-users`";
+    const db = await connectToDB();
 
-      const [userRows] = await db.query(sql);
-      const users = userRows as IAdvanceUser[];
-      if (users.length > 0) {
-        res.json({
-          code: "Succeed",
-          message: "User fetched successfully!",
-          data: {
-            users: users,
-            count: users.length,
-          },
-        });
-      } else {
-        res.json({
-          code: "Succeed",
-          message: "User fetched successfully!",
-          data: {
-            users: [],
-            count: 0,
-          },
-        });
-      }
-    } catch (error) {
-      console.error("Server Error:", error);
-      res
-        .status(500)
-        .json({ code: "Error", message: "Server error", data: null });
+    const [userRows] = await db.query(sql);
+    const users = userRows as IAdvanceUser[];
+    if (users.length > 0) {
+      res.json({
+        code: "Succeed",
+        message: "User fetched successfully!",
+        data: {
+          users: users,
+          count: users.length,
+        },
+      });
+    } else {
+      res.json({
+        code: "Succeed",
+        message: "User fetched successfully!",
+        data: {
+          users: [],
+          count: 0,
+        },
+      });
     }
+  } catch (error) {
+    console.error("Server Error:", error);
+    res
+      .status(500)
+      .json({ code: "Error", message: "Server error", data: null });
   }
-);
+});
 
 export default advanceUserRoutes;

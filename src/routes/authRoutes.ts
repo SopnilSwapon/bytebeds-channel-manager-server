@@ -75,7 +75,7 @@ authRouter.post(
         password,
         role_id,
       } = req.body;
-
+      const currentLoggedUserName = req.headers.name;
       const db = await connectToDB();
 
       // Check duplicate username (select only needed columns)
@@ -107,8 +107,8 @@ authRouter.post(
       // Insert user
       const [insertResult] = await db.query<ResultSetHeader>(
         `INSERT INTO \`advance-users\`
-         (name, email, mobile_no, username, role_id, is_auto_property_assign, password, permissions)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+         (name, email, mobile_no, username, role_id, is_auto_property_assign, password, permissions, created_by)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           name,
           email,
@@ -118,6 +118,7 @@ authRouter.post(
           isAutoPropertyAssignInt,
           hashPassword,
           permissions,
+          currentLoggedUserName,
         ]
       );
 
@@ -218,7 +219,7 @@ authRouter.post(
         message: "User login successfully",
         data: {
           id: user.id,
-          name: user.username,
+          name: user.name,
           user_name: user.username,
           user_type: user.user_type,
           access_token: token,
@@ -264,10 +265,6 @@ authRouter.get(
         });
       }
 
-      // const permissions = rows[0]?.permissions
-      //   ? JSON.parse(rows[0].permissions)
-      //   : null;
-      //  const rawPermissions = rows[0]?.permissions;
       const rawPermissions = rows[0]?.permissions;
       let permissions: Record<string, any> | null = null;
       if (typeof rawPermissions === "string") {
@@ -294,7 +291,7 @@ authRouter.get(
       return res.status(200).json({
         code: "USER_PERMISSIONS",
         message: "User permissions fetched successfully",
-        data: userPermissions,
+        data: { permissions: userPermissions },
       });
     } catch (error) {
       console.error("GET_PERMISSIONS_ERROR:", error);
