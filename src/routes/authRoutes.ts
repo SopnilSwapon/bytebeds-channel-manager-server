@@ -43,7 +43,7 @@ interface IUserLoginRow extends RowDataPacket {
 }
 
 // Role's permissions type
-interface IAdvanceRolePermissions extends RowDataPacket {
+export interface IAdvanceRolePermissions extends RowDataPacket {
   permissions?: Record<string, any>;
 }
 // current permissions type
@@ -55,7 +55,7 @@ interface IAllPermissions extends RowDataPacket {
 // ---------------------- Router ----------------------
 const authRouter = express.Router();
 
-function toTinyintBool(value: boolean | string): 0 | 1 {
+export function toTinyIntBool(value: boolean | string): 0 | 1 {
   if (typeof value === "boolean") return value ? 1 : 0;
   const v = String(value).toLowerCase().trim();
   return v === "1" || v === "true" || v === "yes" ? 1 : 0;
@@ -102,7 +102,7 @@ authRouter.post(
       const hashPassword = await bcrypt.hash(password, 10);
 
       // Normalize values for DB
-      const isAutoPropertyAssignInt = toTinyintBool(is_auto_property_assign);
+      const isAutoPropertyAssignInt = toTinyIntBool(is_auto_property_assign);
 
       // Insert user
       const [insertResult] = await db.query<ResultSetHeader>(
